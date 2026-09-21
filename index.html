@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Psychrometric Calculator</title>
+
+ <!-- Browser Tab Logo / Favicon -->
+    <link rel="icon" type="image/png" href="logo.png">
+ 
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#17202a}
+.container{max-width:680px;margin:auto;padding:18px}
+.card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 6px 24px #00000012;margin-bottom:16px}
+h1{font-size:25px;margin:0 0 7px}
+.subtitle{color:#66727e;font-size:14px;line-height:1.45}
+.input-title{font-weight:700;margin:18px 0 8px}
+.row{display:grid;grid-template-columns:1fr 125px;gap:9px;margin-bottom:12px}
+input,select,button{width:100%;padding:13px;border:1px solid #ccd5df;border-radius:11px;font-size:16px;background:#fff}
+button{background:#1769e0;color:#fff;border:0;font-weight:700;margin-top:8px;cursor:pointer}
+button.secondary{background:#eef3f8;color:#25313d;margin-top:9px}
+.note{font-size:12px;color:#6b7580;line-height:1.5;margin-top:14px}
+.error{color:#b42318;font-size:14px;font-weight:600;margin-top:10px}
+.results h2{font-size:20px;margin-top:0}
+.result{display:flex;justify-content:space-between;gap:15px;padding:11px 0;border-bottom:1px solid #edf0f3}
+.result:last-child{border-bottom:0}
+.result span:last-child{font-weight:700;text-align:right}
+.section{font-weight:700;margin-top:15px;padding-top:5px}
+.disabled{opacity:.5}
+@media(max-width:500px){.row{grid-template-columns:1fr 105px}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="card">
+<h1>Psychrometric Calculator</h1>
+<div class="subtitle">
+Enter <b>Dry Bulb Temperature (DBT)</b> plus <b>any one</b> of Wet Bulb Temperature, Relative Humidity or Dew Point Temperature. The remaining psychrometric values will be calculated automatically.
+</div>
+
+<div class="input-title">1. Dry Bulb Temperature</div>
+<div class="row">
+<input id="dbt" type="number" step="0.1" placeholder="e.g. 35">
+<select id="dbtUnit">
+<option value="C">°C Celsius</option>
+<option value="F">°F Fahrenheit</option>
+<option value="K">K Kelvin</option>
+</select>
+</div>
+
+<div class="input-title">2. Enter ONE additional value</div>
+
+<div class="row">
+<input id="wbt" type="number" step="0.1" placeholder="Wet bulb temperature">
+<select id="wbtUnit">
+<option value="C">°C</option>
+<option value="F">°F</option>
+<option value="K">K</option>
+</select>
+</div>
+
+<div class="row">
+<input id="rhInput" type="number" step="0.1" min="0" max="100" placeholder="Relative humidity">
+<div style="padding:13px 8px;text-align:center;border:1px solid #ccd5df;border-radius:11px">RH %</div>
+</div>
+
+<div class="row">
+<input id="dewInput" type="number" step="0.1" placeholder="Dew point temperature">
+<select id="dewUnit">
+<option value="C">°C</option>
+<option value="F">°F</option>
+<option value="K">K</option>
+</select>
+</div>
+
+<div class="input-title">Atmospheric Pressure</div>
+<div class="row">
+<input id="pressure" type="number" step="0.01" value="101.325">
+<div style="padding:13px 8px;text-align:center;border:1px solid #ccd5df;border-radius:11px">kPa</div>
+</div>
+
+<button onclick="calculate()">Calculate</button>
+<button class="secondary" onclick="clearAll()">Clear</button>
+<div id="error" class="error"></div>
+
+<div class="note">
+<strong>How to use:</strong> Enter DBT and only one of WBT, RH%, or Dew Point. Leave the other two blank.
+Temperature input/output can be handled in Celsius, Fahrenheit, or Kelvin.
+</div>
+</div>
+
+<div class="card results">
+<h2>Calculated Results</h2>
+<div class="section">Temperature</div>
+<div class="result"><span>Dry Bulb Temperature</span><span id="rdbt">—</span></div>
+<div class="result"><span>Wet Bulb Temperature</span><span id="rwbt">—</span></div>
+<div class="result"><span>Dew Point Temperature</span><span id="rdew">—</span></div>
+
+<div class="section">Humidity & Air Properties</div>
+<div class="result"><span>Relative Humidity</span><span id="rrh">—</span></div>
+<div class="result"><span>Degree of Saturation</span><span id="rdos">—</span></div>
+<div class="result"><span>Saturation Vapour Pressure</span><span id="rpws">—</span></div>
+<div class="result"><span>Actual Vapour Pressure</span><span id="rpv">—</span></div>
+<div class="result"><span>Humidity Ratio</span><span id="rw">—</span></div>
+<div class="result"><span>Absolute Humidity</span><span id="rah">—</span></div>
+<div class="result"><span>Enthalpy</span><span id="rh">—</span></div>
+<div class="result"><span>Specific Volume</span><span id="rv">—</span></div>
+<div class="result"><span>Wet-Bulb Depression</span><span id="rdep">—</span></div>
+</div>
+
+<div class="card note">
+<b>Note:</b> The WBT↔RH calculations use a standard psychrometric approximation at the entered atmospheric pressure. Values may differ slightly from a particular psychrometric chart.
+</div>
+</div>
+
+<script>
+function toC(x,u){
+ if(u==="C") return x;
+ if(u==="F") return (x-32)*5/9;
+ return x-273.15;
+}
+function fromC(x,u){
+ if(u==="C") return x;
+ if(u==="F") return x*9/5+32;
+ return x+273.15;
+}
+function satP(T){
+ return 0.61094*Math.exp((17.625*T)/(T+243.04));
+}
+function dewFromPv(p){
+ const a=Math.log(p/0.61094);
+ return 243.04*a/(17.625-a);
+}
+function set(id,val){document.getElementById(id).textContent=val}
+
+function calculate(){
+ const dbt=parseFloat(document.getElementById("dbt").value);
+ const dbtU=document.getElementById("dbtUnit").value;
+ const wbtRaw=document.getElementById("wbt").value;
+ const rhRaw=document.getElementById("rhInput").value;
+ const dewRaw=document.getElementById("dewInput").value;
+ const P=parseFloat(document.getElementById("pressure").value);
+ const err=document.getElementById("error");
+ err.textContent="";
+
+ if(!Number.isFinite(dbt)){err.textContent="Please enter the Dry Bulb Temperature.";return}
+ if(!Number.isFinite(P)||P<=0){err.textContent="Please enter a valid atmospheric pressure.";return}
+
+ const extra=[wbtRaw!=="",rhRaw!=="",dewRaw!==" "];
+ // fix exact blank check
+ const supplied=[wbtRaw!=="",rhRaw!=="",dewRaw!==""]; 
+ if(supplied.filter(Boolean).length!==1){
+   err.textContent="Enter DBT plus exactly ONE of WBT, RH% or Dew Point.";
+   return;
+ }
+
+ const T=toC(dbt,dbtU);
+ let Tw,Pv,RH,Td;
+
+ if(T<=-273.15){err.textContent="Invalid DBT.";return}
+
+ if(wbtRaw!==""){
+   Tw=toC(parseFloat(wbtRaw),document.getElementById("wbtUnit").value);
+   if(!Number.isFinite(Tw)){err.textContent="Enter a valid WBT.";return}
+   if(Tw>T+0.001){err.textContent="WBT normally cannot be higher than DBT.";return}
+   const Pwsw=satP(Tw);
+   const gamma=0.00066*P;
+   Pv=Pwsw-gamma*(T-Tw);
+   Pv=Math.max(0,Math.min(Pv,satP(T)));
+   RH=100*Pv/satP(T);
+   Td=dewFromPv(Pv);
+ } else if(rhRaw!==""){
+   RH=parseFloat(rhRaw);
+   if(!Number.isFinite(RH)||RH<0||RH>100){err.textContent="RH must be between 0 and 100%.";return}
+   const Pws=satP(T);
+   Pv=Pws*RH/100;
+   Td=RH===0 ? -Infinity : dewFromPv(Pv);
+   // Solve WBT using bisection
+   let lo=-50,hi=T;
+   for(let i=0;i<80;i++){
+     const mid=(lo+hi)/2;
+     const f=satP(mid)-0.00066*P*(T-mid)-Pv;
+     if(f>0) hi=mid; else lo=mid;
+   }
+   Tw=(lo+hi)/2;
+ } else {
+   Td=toC(parseFloat(dewRaw),document.getElementById("dewUnit").value);
+   if(!Number.isFinite(Td)){err.textContent="Enter a valid dew point.";return}
+   if(Td>T+0.001){err.textContent="Dew point cannot be higher than DBT.";return}
+   Pv=satP(Td);
+   const Pws=satP(T);
+   RH=100*Pv/Pws;
+   let lo=-50,hi=T;
+   for(let i=0;i<80;i++){
+     const mid=(lo+hi)/2;
+     const f=satP(mid)-0.00066*P*(T-mid)-Pv;
+     if(f>0) hi=mid; else lo=mid;
+   }
+   Tw=(lo+hi)/2;
+ }
+
+ const Pws=satP(T);
+ Pv=Math.max(0,Math.min(Pv,Pws));
+ RH=100*Pv/Pws;
+ if(!Number.isFinite(Td) && Pv>0) Td=dewFromPv(Pv);
+
+ const W=0.62198*Pv/(P-Pv);
+ const Tk=T+273.15;
+ const AH=(Pv*1000)/(461.5*Tk)*1000;
+ const h=1.006*T+W*(2501+1.86*T);
+ const v=0.287042*Tk*(1+1.6078*W)/P;
+ const Ws=0.62198*Pws/(P-Pws);
+ const DOS=100*W/Ws;
+ const dep=T-Tw;
+
+ set("rdbt",fromC(T,dbtU).toFixed(2)+" "+(dbtU==="C"?"°C":dbtU==="F"?"°F":"K"));
+ set("rwbt",fromC(Tw,document.getElementById("wbtUnit").value).toFixed(2)+" "+document.getElementById("wbtUnit").value.replace("C","°C").replace("F","°F"));
+ set("rdew",fromC(Td,document.getElementById("dewUnit").value).toFixed(2)+" "+document.getElementById("dewUnit").value.replace("C","°C").replace("F","°F"));
+ set("rrh",RH.toFixed(2)+" %");
+ set("rdos",DOS.toFixed(2)+" %");
+ set("rpws",Pws.toFixed(4)+" kPa");
+ set("rpv",Pv.toFixed(4)+" kPa");
+ set("rw",W.toFixed(6)+" kg/kg dry air");
+ set("rah",AH.toFixed(3)+" g/m³");
+ set("rh",h.toFixed(3)+" kJ/kg dry air");
+ set("rv",v.toFixed(4)+" m³/kg dry air");
+ set("rdep",dep.toFixed(2)+" °C");
+}
+
+function clearAll(){
+ ["dbt","wbt","rhInput","dewInput"].forEach(id=>document.getElementById(id).value="");
+ document.getElementById("pressure").value="101.325";
+ document.getElementById("error").textContent="";
+ ["rdbt","rwbt","rdew","rrh","rdos","rpws","rpv","rw","rah","rh","rv","rdep"].forEach(id=>set(id,"—"));
+}
+</script>
+
+<div class="developer-card">
+    <span>A PROJECT BY</span>
+    <h2>B.PHARM STUDENT  RC-52</h2>
+    <p>© 2026 All Rights Reserved</p>
+</div>
+
+<style>
+.developer-card {
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+}
+
+.developer-card span {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.developer-card h2 {
+    margin: 5px 0;
+    font-size: 26px;
+    letter-spacing: 2px;
+}
+
+.developer-card p {
+    font-size: 12px;
+    opacity: 0.5;
+}
+</style>
+
+</body>
+</html>
