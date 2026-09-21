@@ -1,5 +1,5 @@
 
-**Psychrometric Calculator**
+# **Psychrometric Calculator**
 <br>
 
 <br>
@@ -25,3 +25,8 @@ Dry Bulb Temperature (DBT) and any one of Wet Bulb Temperature, Relative Humidit
 **Purpose**
 
 This project is created for educational and practical use in understanding the psychrometric properties .
+
+## Preview
+<p align="center">
+<img src="preview.png">
+</p>
