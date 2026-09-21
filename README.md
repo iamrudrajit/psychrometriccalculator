@@ -19,7 +19,7 @@ Dry Bulb Temperature (DBT) and any one of Wet Bulb Temperature, Relative Humidit
 <br>
 **Live Demo**     
 
-**"Psychrometric Calculator" (https://iamarjunchakraborty.github.io/psychrometric-calculator/)**
+**"Psychrometric Calculator" (https://iamrudrajit.github.io/psychrometriccalculator/)**
 <br>
 <br>
 **Purpose**
