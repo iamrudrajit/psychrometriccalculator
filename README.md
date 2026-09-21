@@ -1,6 +1,6 @@
 
 # **Psychrometric Calculator**
-(logo.png)
+<img src="logo.png">
 <br>
 
 <br>
